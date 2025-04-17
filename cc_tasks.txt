@@ -1,0 +1,165 @@
+s3:
+aws->s3->create bucket->global name->make sure ACL is enabled->
+create bucket button.
+
+then s3->buckets->select bucket->add files
+to access files->go to bucket->select object->properties->object URL to access->but rn no access is granted.(as by default access is blocked for everyone)
+so to access them properly->goto bucket->permissions->edit block public access->there enable everyone to access by unblocking all public accesses.
+now its time to navigate to object ownership there enable ACL and then head to ACL and edit it.->make allowance for everyone.->now go to object in bucket and edit ACL for it
+then we can access it.
+
+
+versioning:
+
+firstly head to bucket properties and find bucket versioning 
+-> edit it by enabling this option.
+->now add objects into bucket.
+->(if objects were tried to delete before enabling versioning it leads to permanent delete)
+->so as now it is enabled try to delete a object.
+->if there show versions is toggled off it wont at all display it but when we toggle it on then it displays that object with delete marker.
+->now take any object(prefer something related to code for better example) and do some changes to it and reupload it
+this time again when show versions is toggled off it shows only latest version but when toggled on it shows list of all versions.
+
+
+cross region replication:
+
+
+first create a source bucket(don't forget to enable bucket versioning)-> then switch to other region and then create another bucket (don't forget to enable bucket versioning)->now head to first bucket's management section->create replication rule->provide a name to it->with status enabled->
+by default current bucket is treated as source (it can be customized)->select destination bucket which we have created in other region->and now under IAM role select LabRole ->then hit create->for the popup select no if you don't want existing objects to be replicated->then add objects into source bucket then it will be automatically replicated in destination bucket
+
+
+
+static web hoisting:
+
+firstly head to bucket permissions->enable static web hoisting->under hoisting type select host a static website->
+then specify index.html and error.html
+->now upload index.html to the bucket->
+now again provide bucket level and object level permissions(ACL enabling) and then to access the index.html head to bucket properties sections and copy url for static web hosting and access the page through it.
+->now remove index.html to create a error and add error.html into bucket and don't forget to add ACL for error.html too then if we use same url we will be seeing error.html contents
+
+
+EBS:
+firstly create a EC2 instance->and add volumes if needed,
+> then stop the instance and change instance type then again change type 
+->then connect it through either pem, ppk or EC2 direct connect. then->
+sudo su -root level
+lsblk 
+lsblk -fs
+fdisk -l
+fdisk /dev/xvdf
+m -help menu
+n -new partition
+p -primary  then enter enter enter
+w -write
+partprobe -let kernel know about partition changes
+mkfs.xfs /dev/xvdf1
+mkdir /mnt/name
+mount /dev/xvdf1 /mnt/name
+
+vi(or)nano /etc/fstab
+/dev/xvdf /mnt/name xfs default 0 0
+
+
+snapshot:
+aws-> volume->volume actions->create snapshot->snapshot->actions->copy snapshot-> give another destination region->switch to destination region and select that snapshot->actions->create volume from snapshot->volume actions->attach to instance->select any EC2 instance and attach it. which is in same availability zone.
+
+
+efs:
+
+to share files between multiple instance and they must have common sg rule called NFS to achieve this.
+
+steps:
+
+two EC2 instances named efs1 and efs2 from two diff regions and with common ppk type keypair and common inbound rule NFS
+
+now head to efs service->create efs service->give name->head to that efs->then head to network section of it->
+->then click attach of this efs and select mount via DNS
+there provide inbound rules to those instances.
+
+then connect both of them using putty and then commands->
+left efs1 right efs2
+sudo su
+mkdir efs
+yum install -y amazon-efs-utils
+copy and paste efs command from efs created and paste them for each 
+instance.
+cd efs
+create files in one instance
+then ls in both to check.
+
+
+vpc:
+
+
+aws->vpc->create vpc->only vpc option->give name->ipv4 cidr for ip range for vpc generally give 10.0.0.0/16->create vpc
+
+then->subnets->create subnet->select created vpc->give subnet name->then us-east-1a for public and ipv4 cidr as 10.0.1.0/24->create public subnet
+to make a subnet public-> steps:
+	1)select created subnet to make it public
+	2)actions->edit subnet settings->enable auto assign public ipv4 	address->save. now this is public subnet.
+
+then create subnet->select created vpc->give subnet name-> then us-east-1b for private and ipv4 cidr as 10.0.2.0/24->create private subnet
+
+
+now gateway creation:
+aws->internet gateways-> create a gateway->give name ->create gateway
+->then on green popup select attach vpc->select created vpc ->attach to internet gateway
+
+NAT gateway->create nat gateway->give name->select public subnet->allocate elastic ipv4 address->create nat gateway
+
+now route tables:
+aws->route tables->create route table->give name->select created vpc
+->create route table.
+
+modifying route table(first one):
+route tables->select created route table->actions->edit subnet association->select created public subnet->save
+
+route tables(first route table)->select created route table->actions->edit routes->add route->
+destination : 0.0.0.0 -> target is internet gateway created.(must be connected to vpc)->save changes.
+
+
+then create another route table->
+edit routes->destination: 0.0.0.0->target:NAT gateway
+>then head to edit subnet associations of route table->select private subnet.->save
+
+
+instances creation:
+
+aws->EC2->launch instances->give name->for public one give web_server->AMI(linux)->instance type->key pair .pem ->network settings: first select created vpc->then select created public subnet-> add sg rules->http, and https with anywhere and ssh with my ip
+
+aws->EC2->launch instances->give name->for private one give db_server->
+AMI(Linux)->instance type->key pair .pem ->network settings: first select created vpc then select private subnet ->then in sg -> ssh with my ip->http with anywhere ->then new sg called MYSQL/aurora with source type custom and give cidr given for private subnet(10.0.2.0/24) ->create instance
+
+now create another EC2 (basically called baiston) with same settings as web_server_instance but only change keypair to .ppk instead of .pem
+
+
+accessing instances:
+instances created with public subnet can be accessed directly.
+
+so to access private subnet instances we need winscp
+firstly download and install winscp
+then run the winscp application
+then enter host name(baiston instance hostname) just like for putty->then click advanced->
+then ssh->auth->browse .pem file downloaded for db_instance
+then two sections will be available-> in left section cd to downloads and find .pem and drag it and drop in right side->asks for upload then click ok
+
+open putty then connect baiston 
+then:
+sudo su
+ls
+then .pem file should be visible
+now connect this .pem EC2 instance using ssh command
+so now we are connected to private subnet instance using public subnet instance.
+then sudo su->yum install mysql -y
+if not installed then it means no internet so navigate to VPC->
+
+
+->back to putty-> try again installing command: yum install mysql -y
+this time it should be downloaded.
+
+
+
+
+
+
+
