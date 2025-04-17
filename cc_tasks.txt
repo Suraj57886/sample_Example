@@ -57,7 +57,7 @@ mkdir /mnt/name
 mount /dev/xvdf1 /mnt/name
 
 vi(or)nano /etc/fstab
-/dev/xvdf /mnt/name xfs default 0 0
+/dev/xvdf1 /mnt/name xfs default 0 0
 
 
 snapshot:
@@ -66,21 +66,23 @@ aws-> volume->volume actions->create snapshot->snapshot->actions->copy snapshot-
 
 efs:
 
-to share files between multiple instance and they must have common sg rule called NFS to achieve this.
+to share files between multiple instance across different AZ's and they must have common sg rule called NFS to achieve this.
 
 steps:
 
 two EC2 instances named efs1 and efs2 from two diff regions and with common ppk type keypair and common inbound rule NFS
 
-now head to efs service->create efs service->give name->head to that efs->then head to network section of it->
-->then click attach of this efs and select mount via DNS
-there provide inbound rules to those instances.
+now head to efs service->create efs service->give name->head to that efs->then head to network section of it->there provide inbound rules to those instances
+
+
 
 then connect both of them using putty and then commands->
 left efs1 right efs2
 sudo su
 mkdir efs
 yum install -y amazon-efs-utils
+->then click attach of this efs and select mount via DNS
+first one i.e mount efs command
 copy and paste efs command from efs created and paste them for each 
 instance.
 cd efs
@@ -119,6 +121,7 @@ destination : 0.0.0.0 -> target is internet gateway created.(must be connected t
 
 
 then create another route table->
+edit subnet associations->select created private subnet.
 edit routes->destination: 0.0.0.0->target:NAT gateway
 >then head to edit subnet associations of route table->select private subnet.->save
 
@@ -140,7 +143,7 @@ so to access private subnet instances we need winscp
 firstly download and install winscp
 then run the winscp application
 then enter host name(baiston instance hostname) just like for putty->then click advanced->
-then ssh->auth->browse .pem file downloaded for db_instance
+then ssh->auth->browse .ppk file downloaded for baiston_instance.
 then two sections will be available-> in left section cd to downloads and find .pem and drag it and drop in right side->asks for upload then click ok
 
 open putty then connect baiston 
@@ -154,7 +157,7 @@ then sudo su->yum install mysql -y
 if not installed then it means no internet so navigate to VPC->
 
 
-->back to putty-> try again installing command: yum install mysql -y
+->back to putty-> try again installing command: yum install git -y
 this time it should be downloaded.
 
 

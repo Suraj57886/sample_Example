@@ -1,0 +1,49 @@
+VPC
+
+aws->vpc->create vpc-> vpc name->cidr range 10.0.0.0/16
+
+subnets->
+create subnet->give subnet name for public->select created vpc->select A.Z -> provide cidr range 10.0.1.0/24
+
+then to make it public-> subnet actions->subnet settings->enable auto assigning IPv4
+
+then repeat same steps to create private subnet with private subnet name, created VPC, give private A.Z and cidr as 10.0.2.0/24 this time.
+
+
+Internet Gateway->
+internet gateway->create->give name->after creation attach to vpc
+
+nat gateway->
+nat gateway->create->give name->select public subnet->enable allocate IPv4->create button
+
+route tables
+
+first one->
+route tables->create->rt-1>select created vpc->then edit subnet associations->
+select public subnet->then edit routes->add route->dest 0.0.0.0 and target internet gateway
+
+second one->
+route tables->create->rt-2->select created vpc->then edit subnet associations->
+select created private subnet->then edit routes->add route->dest: 0.0.0.0 and target->nat gatway
+
+
+instances creation
+
+we need three i.e web, db, baiston
+
+for web and db use .pem and for baiston use .ppk
+and while creating instances under network settings
+give created vpc and public subnet for web and baiston instances
+and created vpc, private subnet for db instance
+
+then run WinSCP and give hostname of baiston instance->advanced->ssh->auth->credentials->
+give .ppk of baiston->then in two tabs->
+drag and drop .pem of db instance to right side
+
+
+accessing instance->
+now through putty connect to baiston instance->then sudo so
+and then check with ls for .pem file
+->then using ssh command connect to db_instance
+->now install something like example: yum install git -y
+
